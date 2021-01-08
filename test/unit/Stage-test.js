@@ -50,6 +50,8 @@ suite('Stage', function () {
       width: 578,
       height: 200,
     });
+
+    assert.equal(stage.container(), container);
   });
 
   // ======================================================
@@ -828,7 +830,6 @@ suite('Stage', function () {
     var clicks = 0;
 
     stage.on('click', function () {
-      debugger;
       clicks += 1;
     });
 

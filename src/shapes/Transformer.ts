@@ -11,7 +11,7 @@ import { _registerNode } from '../Global';
 
 import { GetSet, IRect, Vector2d } from '../types';
 
-interface Box extends IRect {
+export interface Box extends IRect {
   rotation: number;
 }
 
@@ -298,7 +298,7 @@ export class Transformer extends Group {
         }
 
         this._resetTransformCache();
-        if (!this._transforming) {
+        if (!this._transforming && !this.isDragging()) {
           this.update();
         }
       };
@@ -347,14 +347,14 @@ export class Transformer extends Group {
           x: otherAbs.x + dx,
           y: otherAbs.y + dy,
         });
-        otherNode.startDrag();
+        otherNode.startDrag(e);
       });
       lastPos = null;
     });
   }
 
   getNodes() {
-    return this._nodes;
+    return this._nodes || [];
   }
   /**
    * return the name of current active anchor
@@ -595,11 +595,22 @@ export class Transformer extends Group {
     });
     this.add(back);
     this._proxyDrag(back);
+    // do not bubble drag from the back shape
+    // because we already "drag" whole transformer
+    // so we don't want to trigger drag twice on transformer
+    back.on('dragstart', (e) => {
+      e.cancelBubble = true;
+    });
+    back.on('dragmove', (e) => {
+      e.cancelBubble = true;
+    });
+    back.on('dragend', (e) => {
+      e.cancelBubble = true;
+    });
   }
   _handleMouseDown(e) {
     this._movingAnchorName = e.target.name().split(' ')[0];
 
-    // var node = this.getNode();
     var attrs = this._getNodeRect();
     var width = attrs.width;
     var height = attrs.height;
@@ -621,7 +632,9 @@ export class Transformer extends Group {
       y: pos.y - ap.y,
     };
     this._fire('transformstart', { evt: e, target: this.getNode() });
-    this.getNode()._fire('transformstart', { evt: e, target: this.getNode() });
+    this._nodes.forEach((target) => {
+      target._fire('transformstart', { evt: e, target });
+    });
   }
   _handleMouseMove(e) {
     var x, y, newHypotenuse;
@@ -866,7 +879,9 @@ export class Transformer extends Group {
       this._fire('transformend', { evt: e, target: node });
 
       if (node) {
-        node.fire('transformend', { evt: e, target: node });
+        this._nodes.forEach((target) => {
+          target._fire('transformend', { evt: e, target });
+        });
       }
       this._movingAnchorName = null;
     }
@@ -991,7 +1006,7 @@ export class Transformer extends Group {
     newTr.rotate(newAttrs.rotation);
     newTr.scale(newAttrs.width / baseSize, newAttrs.height / baseSize);
 
-    // now lets think we had [old transform] and now we have [new transform]
+    // now lets think we had [old transform] and n ow we have [new transform]
     // Now, the questions is: how can we transform "parent" to go from [old transform] into [new transform]
     // in equation it will be:
     // [delta transform] * [old transform] = [new transform]
@@ -1021,6 +1036,7 @@ export class Transformer extends Group {
       node.setAttrs(attrs);
       this._fire('transform', { evt: evt, target: node });
       node._fire('transform', { evt: evt, target: node });
+      node.getLayer()?.batchDraw();
     });
     this.rotation(Util._getRotation(newAttrs.rotation));
     this._resetTransformCache();
@@ -1136,6 +1152,7 @@ export class Transformer extends Group {
       x: 0,
       y: 0,
     });
+    this.getLayer()?.batchDraw();
   }
   /**
    * determine if transformer is in active transform
@@ -1196,7 +1213,7 @@ export class Transformer extends Group {
   keepRatio: GetSet<boolean, this>;
   centeredScaling: GetSet<boolean, this>;
   ignoreStroke: GetSet<boolean, this>;
-  boundBoxFunc: GetSet<(oldBox: IRect, newBox: IRect) => IRect, this>;
+  boundBoxFunc: GetSet<(oldBox: Box, newBox: Box) => Box, this>;
   shouldOverdrawWholeArea: GetSet<boolean, this>;
 }
 

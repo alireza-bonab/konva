@@ -19,6 +19,8 @@ export class Collection<Child extends Node> {
   [index: number]: Child;
 
   // @ts-ignore
+  [Symbol.iterator](): Iterator<Child>;
+  // @ts-ignore
   length: number;
   // @ts-ignore
   each: (f: (child: Child, index: number) => void) => void;
@@ -984,6 +986,9 @@ export const Util = {
         p[n + 3],
         tension
       );
+      if (isNaN(cp[0])) {
+        continue;
+      }
       allPoints.push(cp[0]);
       allPoints.push(cp[1]);
       allPoints.push(p[n]);

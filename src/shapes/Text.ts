@@ -12,11 +12,21 @@ import { _registerNode } from '../Global';
 
 import { GetSet } from '../types';
 
+export function stringToArray(string: string) {
+  // we need to use `Array.from` because it can split unicode string correctly
+  // we also can use some regexp magic from lodash:
+  // https://github.com/lodash/lodash/blob/fb1f99d9d90ad177560d771bc5953a435b2dc119/lodash.toarray/index.js#L256
+  // but I decided it is too much code for that small fix
+  return Array.from(string);
+}
+
 export interface TextConfig extends ShapeConfig {
   text?: string;
   fontFamily?: string;
   fontSize?: number;
   fontStyle?: string;
+  fontVariant?: string;
+  textDecoration?: string;
   align?: string;
   verticalAlign?: string;
   padding?: number;
@@ -159,11 +169,16 @@ export class Text extends Shape<TextConfig> {
   }
 
   _sceneFunc(context) {
+    var textArr = this.textArr,
+      textArrLen = textArr.length;
+
+    if (!this.text()) {
+      return;
+    }
+
     var padding = this.padding(),
       fontSize = this.fontSize(),
       lineHeightPx = this.lineHeight() * fontSize,
-      textArr = this.textArr,
-      textArrLen = textArr.length,
       verticalAlign = this.verticalAlign(),
       alignY = 0,
       align = this.align(),
@@ -264,8 +279,9 @@ export class Text extends Shape<TextConfig> {
       if (letterSpacing !== 0 || align === JUSTIFY) {
         //   var words = text.split(' ');
         spacesNumber = text.split(' ').length - 1;
-        for (var li = 0; li < text.length; li++) {
-          var letter = text[li];
+        var array = stringToArray(text);
+        for (var li = 0; li < array.length; li++) {
+          var letter = array[li];
           // skip justify for the last line
           if (letter === ' ' && n !== textArrLen - 1 && align === JUSTIFY) {
             lineTranslateX += (totalWidth - padding * 2 - width) / spacesNumber;
@@ -418,7 +434,7 @@ export class Text extends Shape<TextConfig> {
       // align = this.align(),
       shouldWrap = wrap !== NONE,
       wrapAtWord = wrap !== CHAR && shouldWrap,
-      shouldAddEllipsis = this.ellipsis() && !shouldWrap;
+      shouldAddEllipsis = this.ellipsis();
 
     this.textArr = [];
     getDummyContext().font = this._getContextFont();
@@ -447,7 +463,7 @@ export class Text extends Shape<TextConfig> {
               substrWidth = this._getTextWidth(substr) + additionalWidth;
             if (substrWidth <= maxWidth) {
               low = mid + 1;
-              match = substr + (shouldAddEllipsis ? ELLIPSIS : '');
+              match = substr;
               matchWidth = substrWidth;
             } else {
               high = mid;
@@ -491,17 +507,19 @@ export class Text extends Shape<TextConfig> {
             ) {
               var lastLine = this.textArr[this.textArr.length - 1];
               if (lastLine) {
-                var haveSpace =
-                  this._getTextWidth(lastLine.text + ELLIPSIS) < maxWidth;
-                if (!haveSpace) {
-                  lastLine.text = lastLine.text.slice(
-                    0,
-                    lastLine.text.length - 3
-                  );
-                }
+                if (shouldAddEllipsis) {
+                  var haveSpace =
+                    this._getTextWidth(lastLine.text + ELLIPSIS) < maxWidth;
+                  if (!haveSpace) {
+                    lastLine.text = lastLine.text.slice(
+                      0,
+                      lastLine.text.length - 3
+                    );
+                  }
 
-                this.textArr.splice(this.textArr.length - 1, 1);
-                this._addTextLine(lastLine.text + ELLIPSIS);
+                  this.textArr.splice(this.textArr.length - 1, 1);
+                  this._addTextLine(lastLine.text + ELLIPSIS);
+                }
               }
 
               /*

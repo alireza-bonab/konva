@@ -1,6 +1,6 @@
 {
   "name": "konva",
-  "version": "7.1.0",
+  "version": "7.2.2",
   "author": "Anton Lavrenov",
   "files": [
     "README.md",
@@ -27,6 +27,20 @@
     "watch": "rollup -c -w",
     "size": "size-limit"
   },
+  "funding": [
+    {
+      "type": "patreon",
+      "url": "https://www.patreon.com/lavrton"
+    },
+    {
+      "type": "opencollective",
+      "url": "https://opencollective.com/konva"
+    },
+    {
+      "type": "github",
+      "url": "https://github.com/sponsors/lavrton"
+    }
+  ],
   "size-limit": [
     {
       "limit": "47 KB",
